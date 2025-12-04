@@ -4,7 +4,11 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, UserLogin, Token
-from app.core.security import get_password_hash, verify_password, create_access_token
+from app.core.security import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+)
 
 router = APIRouter()
 
@@ -35,10 +39,13 @@ def login(user_in: UserLogin, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
 
-    if not verify_password(user_in.password, user.password_hash):
+    try:
+        valid = verify_password(user_in.password, user.password_hash)
+    except Exception:
         raise HTTPException(status_code=400, detail="Incorrect email or password")
 
-    # в subject можно класть id или email
-    access_token = create_access_token(subject=str(user.id))
+    if not valid:
+        raise HTTPException(status_code=400, detail="Incorrect email or password")
 
+    access_token = create_access_token(user_id=user.id, role=user.role)
     return Token(access_token=access_token, token_type="bearer")

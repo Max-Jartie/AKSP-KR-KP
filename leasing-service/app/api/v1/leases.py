@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.leasing import Lease
 from app.schemas.leasing import LeaseCreate, LeaseRead, LeaseWithPayments
+from app.core.security import get_current_user, CurrentUser
 
 router = APIRouter()
 
@@ -15,7 +16,14 @@ def list_leases(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=LeaseRead, status_code=status.HTTP_201_CREATED)
-def create_lease(lease_in: LeaseCreate, db: Session = Depends(get_db)):
+def create_lease(
+    lease_in: LeaseCreate,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.role != "OWNER":
+        raise HTTPException(status_code=403, detail="Only owners can create leases")
+
     lease = Lease(
         unit_id=lease_in.unit_id,
         tenant_id=lease_in.tenant_id,
@@ -27,12 +35,4 @@ def create_lease(lease_in: LeaseCreate, db: Session = Depends(get_db)):
     db.add(lease)
     db.commit()
     db.refresh(lease)
-    return lease
-
-
-@router.get("/{lease_id}", response_model=LeaseWithPayments)
-def get_lease(lease_id: int, db: Session = Depends(get_db)):
-    lease = db.query(Lease).filter(Lease.id == lease_id).first()
-    if not lease:
-        raise HTTPException(status_code=404, detail="Lease not found")
     return lease

@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.property import Property
 from app.schemas.property import PropertyCreate, PropertyRead, PropertyWithUnits
+from app.core.security import get_current_user, CurrentUser
 
 router = APIRouter()
 
@@ -16,7 +17,14 @@ def list_properties(db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=PropertyRead, status_code=status.HTTP_201_CREATED)
-def create_property(prop_in: PropertyCreate, db: Session = Depends(get_db)):
+def create_property(
+    prop_in: PropertyCreate,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
+    if current_user.role != "OWNER":
+        raise HTTPException(status_code=403, detail="Only owners can create properties")
+
     prop = Property(
         owner_id=prop_in.owner_id,
         name=prop_in.name,
@@ -28,25 +36,3 @@ def create_property(prop_in: PropertyCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(prop)
     return prop
-
-
-@router.get("/{property_id}", response_model=PropertyWithUnits)
-def get_property(property_id: int, db: Session = Depends(get_db)):
-    prop = (
-        db.query(Property)
-        .filter(Property.id == property_id)
-        .first()
-    )
-    if not prop:
-        raise HTTPException(status_code=404, detail="Property not found")
-    return prop
-
-
-@router.delete("/{property_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_property(property_id: int, db: Session = Depends(get_db)):
-    prop = db.query(Property).filter(Property.id == property_id).first()
-    if not prop:
-        raise HTTPException(status_code=404, detail="Property not found")
-    db.delete(prop)
-    db.commit()
-    return

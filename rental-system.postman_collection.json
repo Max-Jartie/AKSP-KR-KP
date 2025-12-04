@@ -1,0 +1,299 @@
+{
+    "info": {
+      "_postman_id": "11111111-2222-3333-4444-555555555555",
+      "name": "Rental System API",
+      "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+      {
+        "name": "Auth Service",
+        "item": [
+          {
+            "name": "Register Owner",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"email\": \"owner@example.com\",\n  \"full_name\": \"Owner Test\",\n  \"password\": \"123456\",\n  \"role\": \"OWNER\"\n}"
+              },
+              "url": {
+                "raw": "{{auth_base}}/api/v1/auth/register",
+                "host": ["{{auth_base}}"],
+                "path": ["api", "v1", "auth", "register"]
+              }
+            },
+            "response": []
+          },
+          {
+            "name": "Register Tenant",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"email\": \"tenant@example.com\",\n  \"full_name\": \"Tenant Test\",\n  \"password\": \"123456\",\n  \"role\": \"TENANT\"\n}"
+              },
+              "url": {
+                "raw": "{{auth_base}}/api/v1/auth/register",
+                "host": ["{{auth_base}}"],
+                "path": ["api", "v1", "auth", "register"]
+              }
+            },
+            "response": []
+          },
+          {
+            "name": "Login Owner",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"email\": \"owner@example.com\",\n  \"password\": \"123456\"\n}"
+              },
+              "url": {
+                "raw": "{{auth_base}}/api/v1/auth/login",
+                "host": ["{{auth_base}}"],
+                "path": ["api", "v1", "auth", "login"]
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test(\"Status code is 200\", function () {",
+                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                    "});",
+                    "",
+                    "let jsonData = pm.response.json();",
+                    "if (jsonData.access_token) {",
+                    "    pm.collectionVariables.set(\"token\", jsonData.access_token);",
+                    "    console.log(\"Token set:\", jsonData.access_token);",
+                    "} else {",
+                    "    console.log(\"No access_token in response\", jsonData);",
+                    "}"
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "name": "Login Tenant",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Content-Type", "value": "application/json" }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"email\": \"tenant@example.com\",\n  \"password\": \"123456\"\n}"
+              },
+              "url": {
+                "raw": "{{auth_base}}/api/v1/auth/login",
+                "host": ["{{auth_base}}"],
+                "path": ["api", "v1", "auth", "login"]
+              }
+            },
+            "response": [],
+            "event": [
+              {
+                "listen": "test",
+                "script": {
+                  "type": "text/javascript",
+                  "exec": [
+                    "pm.test(\"Status code is 200\", function () {",
+                    "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                    "});",
+                    "",
+                    "let jsonData = pm.response.json();",
+                    "if (jsonData.access_token) {",
+                    "    pm.collectionVariables.set(\"token\", jsonData.access_token);",
+                    "    console.log(\"Token set (tenant):\", jsonData.access_token);",
+                    "} else {",
+                    "    console.log(\"No access_token in response\", jsonData);",
+                    "}"
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Property Service",
+        "item": [
+          {
+            "name": "List Properties",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{property_base}}/api/v1/properties/",
+                "host": ["{{property_base}}"],
+                "path": ["api", "v1", "properties", ""]
+              }
+            },
+            "response": []
+          },
+          {
+            "name": "Create Property",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Content-Type", "value": "application/json" },
+                { "key": "Authorization", "value": "Bearer {{token}}" }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"owner_id\": 1,\n  \"name\": \"БЦ Ленина 10\",\n  \"address\": \"г. Москва, ул. Ленина, 10\",\n  \"description\": \"Офисное помещение\",\n  \"property_type\": \"OFFICE\"\n}"
+              },
+              "url": {
+                "raw": "{{property_base}}/api/v1/properties/",
+                "host": ["{{property_base}}"],
+                "path": ["api", "v1", "properties", ""]
+              }
+            },
+            "response": []
+          },
+          {
+            "name": "List Units",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{property_base}}/api/v1/units/?property_id=1",
+                "host": ["{{property_base}}"],
+                "path": ["api", "v1", "units", ""],
+                "query": [
+                  { "key": "property_id", "value": "1" }
+                ]
+              }
+            },
+            "response": []
+          },
+          {
+            "name": "Create Unit",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Content-Type", "value": "application/json" },
+                { "key": "Authorization", "value": "Bearer {{token}}" }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"property_id\": 1,\n  \"unit_number\": \"102\",\n  \"area\": 45.5,\n  \"floor\": 1,\n  \"status\": \"AVAILABLE\",\n  \"monthly_rent\": 50000\n}"
+              },
+              "url": {
+                "raw": "{{property_base}}/api/v1/units/",
+                "host": ["{{property_base}}"],
+                "path": ["api", "v1", "units", ""]
+              }
+            },
+            "response": []
+          }
+        ]
+      },
+      {
+        "name": "Leasing Service",
+        "item": [
+          {
+            "name": "List Leases",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{leasing_base}}/api/v1/leases/",
+                "host": ["{{leasing_base}}"],
+                "path": ["api", "v1", "leases", ""]
+              }
+            },
+            "response": []
+          },
+          {
+            "name": "Create Lease",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Content-Type", "value": "application/json" },
+                { "key": "Authorization", "value": "Bearer {{token}}" }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"unit_id\": 1,\n  \"tenant_id\": 2,\n  \"start_date\": \"2025-01-10\",\n  \"end_date\": \"2025-12-31\",\n  \"monthly_rent\": 50000,\n  \"status\": \"ACTIVE\"\n}"
+              },
+              "url": {
+                "raw": "{{leasing_base}}/api/v1/leases/",
+                "host": ["{{leasing_base}}"],
+                "path": ["api", "v1", "leases", ""]
+              }
+            },
+            "response": []
+          },
+          {
+            "name": "List Payments",
+            "request": {
+              "method": "GET",
+              "header": [],
+              "url": {
+                "raw": "{{leasing_base}}/api/v1/payments/?lease_id=1",
+                "host": ["{{leasing_base}}"],
+                "path": ["api", "v1", "payments", ""],
+                "query": [
+                  { "key": "lease_id", "value": "1" }
+                ]
+              }
+            },
+            "response": []
+          },
+          {
+            "name": "Create Payment",
+            "request": {
+              "method": "POST",
+              "header": [
+                { "key": "Content-Type", "value": "application/json" },
+                { "key": "Authorization", "value": "Bearer {{token}}" }
+              ],
+              "body": {
+                "mode": "raw",
+                "raw": "{\n  \"lease_id\": 1,\n  \"payment_date\": \"2025-02-01\",\n  \"amount\": 50000,\n  \"status\": \"PAID\",\n  \"method\": \"card\"\n}"
+              },
+              "url": {
+                "raw": "{{leasing_base}}/api/v1/payments/",
+                "host": ["{{leasing_base}}"],
+                "path": ["api", "v1", "payments", ""]
+              }
+            },
+            "response": []
+          }
+        ]
+      }
+    ],
+    "variable": [
+      {
+        "key": "auth_base",
+        "value": "http://localhost:8001"
+      },
+      {
+        "key": "property_base",
+        "value": "http://localhost:8002"
+      },
+      {
+        "key": "leasing_base",
+        "value": "http://localhost:8003"
+      },
+      {
+        "key": "token",
+        "value": ""
+      }
+    ]
+  }
+  

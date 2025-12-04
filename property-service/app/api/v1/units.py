@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.property import Unit
 from app.schemas.property import UnitCreate, UnitRead
+from app.core.security import get_current_user, CurrentUser
+from sqlalchemy.exc import IntegrityError
 
 router = APIRouter()
 
@@ -18,7 +20,10 @@ def list_units(property_id: int | None = None, db: Session = Depends(get_db)):
 
 
 @router.post("/", response_model=UnitRead, status_code=status.HTTP_201_CREATED)
-def create_unit(unit_in: UnitCreate, db: Session = Depends(get_db)):
+def create_unit(unit_in: UnitCreate, db: Session = Depends(get_db), current_user: CurrentUser = Depends(get_current_user)):
+    if current_user.role != "OWNER":
+        raise HTTPException(status_code=403, detail="Only owners can create units")
+
     unit = Unit(
         property_id=unit_in.property_id,
         unit_number=unit_in.unit_number,
@@ -28,7 +33,14 @@ def create_unit(unit_in: UnitCreate, db: Session = Depends(get_db)):
         monthly_rent=unit_in.monthly_rent,
     )
     db.add(unit)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Unit with this number already exists in this property",
+        )
     db.refresh(unit)
     return unit
 
