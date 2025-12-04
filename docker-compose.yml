@@ -36,6 +36,16 @@ services:
     networks:
       - rental-net  
 
+  leasing-service:
+    build: ./leasing-service
+    container_name: leasing_service
+    depends_on:
+      - db
+    ports:
+      - "8003:8003"
+    networks:
+      - rental-net  
+
 networks:
   rental-net:
 
