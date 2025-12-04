@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Новый объект{% endblock %}
+
+{% block content %}
+<h2 class="mb-3">Создание объекта</h2>
+
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/properties/new">
+    <div class="mb-3">
+        <label class="form-label">Название</label>
+        <input
+          type="text"
+          class="form-control"
+          name="name"
+          required
+        />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Адрес</label>
+        <input
+          type="text"
+          class="form-control"
+          name="address"
+          required
+        />
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Описание</label>
+        <textarea class="form-control" name="description" rows="3"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Тип объекта</label>
+        <select class="form-select" name="property_type">
+            <option value="OFFICE">Офис</option>
+            <option value="RETAIL">Торговое</option>
+            <option value="WAREHOUSE">Склад</option>
+            <option value="APARTMENT">Квартира</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-success">Создать</button>
+    <a href="/properties" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

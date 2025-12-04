@@ -3,7 +3,10 @@
 {% block title %}Объекты{% endblock %}
 
 {% block content %}
-<h2 class="mb-3">Список объектов</h2>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Список объектов</h2>
+    <a href="/properties/new" class="btn btn-primary">Добавить объект</a>
+</div>
 
 {% if error %}
     <div class="alert alert-danger">{{ error }}</div>
@@ -13,19 +16,26 @@
     <table class="table table-striped">
         <thead>
         <tr>
-            <th>ID</th>
             <th>Название</th>
             <th>Адрес</th>
             <th>Тип</th>
+            <th></th>
         </tr>
         </thead>
         <tbody>
         {% for p in properties %}
             <tr>
-                <td>{{ p.id }}</td>
                 <td>{{ p.name }}</td>
                 <td>{{ p.address }}</td>
                 <td>{{ p.property_type }}</td>
+                <td>
+                    <a
+                      href="/properties/{{ p.id }}/units?property_name={{ p.name|urlencode }}"
+                      class="btn btn-sm btn-outline-secondary"
+                    >
+                        Помещения
+                    </a>
+                </td>
             </tr>
         {% endfor %}
         </tbody>

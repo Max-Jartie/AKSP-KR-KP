@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Помещения{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>
+        Помещения объекта
+        {% if property_name %}
+            {{ property_name }}
+        {% else %}
+            ID {{ property_id }}
+        {% endif %}
+    </h2>
+    <a
+      href="/properties/{{ property_id }}/units/new?property_name={{ property_name|urlencode }}"
+      class="btn btn-primary"
+    >
+        Добавить помещение
+    </a>
+</div>
+
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if units and units|length > 0 %}
+    <table class="table table-striped">
+        <thead>
+        <tr>
+            <th>Площадь</th>
+            <th>Этаж</th>
+            <th>Статус</th>
+            <th>Аренда, ₽/мес</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for u in units %}
+            <tr>
+                <td>{{ u.area }}</td>
+                <td>{{ u.floor }}</td>
+                <td>{{ u.status }}</td>
+                <td>{{ u.monthly_rent }}</td>
+                <td>
+                    <a
+                      href="/leases/new?unit_id={{ u.id }}&property_id={{ property_id }}&property_name={{ property_name|urlencode }}"
+                      class="btn btn-sm btn-outline-success"
+                    >
+                        Договор
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <p>Помещений пока нет.</p>
+{% endif %}
+
+<a href="/properties" class="btn btn-secondary mt-3">Назад к объектам</a>
+{% endblock %}
