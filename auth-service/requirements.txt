@@ -3,7 +3,7 @@ uvicorn[standard]
 SQLAlchemy
 psycopg2-binary
 python-jose[cryptography]
-passlib[bcrypt]
+passlib
 pydantic<2.0.0
 email-validator
 httpx
