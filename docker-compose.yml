@@ -16,6 +16,17 @@ services:
     networks:
       - rental-net
 
+  auth-service:
+    build: ./auth-service
+    container_name: auth_service
+    depends_on:
+      - db
+    ports:
+      - "8001:8001"
+    networks:
+      - rental-net
+
+
 networks:
   rental-net:
 
