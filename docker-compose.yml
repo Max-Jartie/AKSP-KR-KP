@@ -1,0 +1,23 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16
+    container_name: rental_db
+    environment:
+      POSTGRES_USER: rental_user
+      POSTGRES_PASSWORD: rental_pass
+      POSTGRES_DB: rental_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - rental-net
+
+networks:
+  rental-net:
+
+volumes:
+  pgdata:
