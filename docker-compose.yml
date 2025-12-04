@@ -24,8 +24,17 @@ services:
     ports:
       - "8001:8001"
     networks:
-      - rental-net
+      - rental-net  
 
+  property-service:
+    build: ./property-service
+    container_name: property_service
+    depends_on:
+      - db
+    ports:
+      - "8002:8002"
+    networks:
+      - rental-net  
 
 networks:
   rental-net:
