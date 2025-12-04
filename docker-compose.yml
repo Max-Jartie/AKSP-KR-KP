@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   db:
     image: postgres:16
@@ -16,7 +14,7 @@ services:
     networks:
       - rental-net
 
-  auth-service:
+  auth_service:
     build: ./auth-service
     container_name: auth_service
     depends_on:
@@ -26,7 +24,7 @@ services:
     networks:
       - rental-net  
 
-  property-service:
+  property_service:
     build: ./property-service
     container_name: property_service
     depends_on:
@@ -36,7 +34,7 @@ services:
     networks:
       - rental-net  
 
-  leasing-service:
+  leasing_service:
     build: ./leasing-service
     container_name: leasing_service
     depends_on:
@@ -46,8 +44,20 @@ services:
     networks:
       - rental-net  
 
-networks:
-  rental-net:
+  frontend_service:
+    build: ./frontend-service
+    container_name: frontend_service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - auth_service
+      - property_service
+      - leasing_service
+    networks:
+      - rental-net
 
 volumes:
   pgdata:
+
+networks:
+  rental-net:
