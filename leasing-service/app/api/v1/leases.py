@@ -1,4 +1,5 @@
 from typing import List
+from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
@@ -27,6 +28,28 @@ def create_lease(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_user),
 ):
+    if lease_in.end_date and lease_in.end_date < lease_in.start_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Дата окончания не может быть раньше даты начала",
+        )
+
+    active_leases = (
+        db.query(Lease)
+        .filter(Lease.unit_id == lease_in.unit_id, Lease.status == "ACTIVE")
+        .all()
+    )
+
+    for existing in active_leases:
+        existing_end = existing.end_date or date.max
+        new_end = lease_in.end_date or date.max
+
+        if lease_in.start_date <= existing_end and existing.start_date <= new_end:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="На выбранные даты уже есть действующий договор для этого помещения",
+            )
+
     try:
         lease = Lease(
             unit_id=lease_in.unit_id,

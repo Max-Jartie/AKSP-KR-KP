@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Мои договора{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Мои договора</h2>
+</div>
+
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if leases and leases|length > 0 %}
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Объект</th>
+                <th>Помещение</th>
+                <th>Даты</th>
+                <th>Аренда в месяц</th>
+                <th>Статус</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in leases %}
+                <tr>
+                    <td>
+                        {% if item.property %}
+                            {{ item.property.name }}
+                        {% elif item.unit %}
+                            Объект #{{ item.unit.property_id }}
+                        {% else %}
+                            Объект неизвестен
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if item.unit %}
+                            {{ item.unit.unit_number }} (ID {{ item.unit.id }})
+                        {% else %}
+                            Помещение #{{ item.lease.unit_id }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div><strong>Начало:</strong> {{ item.lease.start_date }}</div>
+                        <div><strong>Окончание:</strong> {% if item.lease.end_date %}{{ item.lease.end_date }}{% else %}Бессрочно{% endif %}</div>
+                    </td>
+                    <td>{{ item.lease.monthly_rent }} ₽</td>
+                    <td>{{ item.lease.status }}</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% else %}
+    <div class="alert alert-info">У вас пока нет договоров.</div>
+{% endif %}
+{% endblock %}
