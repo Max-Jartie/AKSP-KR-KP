@@ -428,6 +428,110 @@ async def unit_create(
     )
 
 
+@app.get("/leases", response_class=HTMLResponse)
+async def leases_list(request: Request):
+    token = get_token_from_cookies(request)
+    if not token:
+        return RedirectResponse(url="/login?redirect=/leases")
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(
+                f"{LEASING_BASE}/api/v1/leases/",
+                headers=headers,
+                timeout=10.0,
+            )
+        except httpx.RequestError:
+            return templates.TemplateResponse(
+                "leases.html",
+                {
+                    "request": request,
+                    "leases": [],
+                    "error": "Сервис договоров недоступен",
+                },
+                status_code=503,
+            )
+
+        if resp.status_code == 401:
+            response = RedirectResponse(url="/login?redirect=/leases", status_code=303)
+            response.delete_cookie("access_token")
+            return response
+
+        if resp.status_code not in (200, 201):
+            return templates.TemplateResponse(
+                "leases.html",
+                {
+                    "request": request,
+                    "leases": [],
+                    "error": f"Ошибка сервиса договоров: {resp.status_code}",
+                },
+                status_code=resp.status_code,
+            )
+
+        leases = resp.json()
+        unit_cache: dict[int, dict | None] = {}
+        property_cache: dict[int, dict | None] = {}
+        leases_with_details = []
+
+        for lease in leases:
+            unit_id = lease.get("unit_id")
+            unit_info = unit_cache.get(unit_id)
+
+            if unit_info is None and unit_id is not None:
+                try:
+                    unit_resp = await client.get(
+                        f"{PROPERTY_BASE}/api/v1/units/public/{unit_id}",
+                        timeout=10.0,
+                    )
+                    if unit_resp.status_code == 200:
+                        unit_info = unit_resp.json()
+                    else:
+                        unit_info = None
+                except httpx.RequestError:
+                    unit_info = None
+
+                unit_cache[unit_id] = unit_info
+
+            property_info = None
+            if unit_info:
+                property_id = unit_info.get("property_id")
+                property_info = property_cache.get(property_id)
+
+                if property_info is None and property_id is not None:
+                    try:
+                        property_resp = await client.get(
+                            f"{PROPERTY_BASE}/api/v1/properties/{property_id}",
+                            timeout=10.0,
+                        )
+                        if property_resp.status_code == 200:
+                            property_info = property_resp.json()
+                        else:
+                            property_info = None
+                    except httpx.RequestError:
+                        property_info = None
+
+                    property_cache[property_id] = property_info
+
+            leases_with_details.append(
+                {
+                    "lease": lease,
+                    "unit": unit_info,
+                    "property": property_info,
+                }
+            )
+
+    return templates.TemplateResponse(
+        "leases.html",
+        {
+            "request": request,
+            "leases": leases_with_details,
+            "error": None,
+        },
+    )
+
+
 @app.get("/leases/new", response_class=HTMLResponse)
 async def lease_new_form(
     request: Request,
