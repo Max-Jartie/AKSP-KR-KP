@@ -54,17 +54,14 @@ def get_user_id_from_token(token: str) -> int | None:
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
-    token = get_token_from_cookies(request)
-    if token:
-        return RedirectResponse(url="/properties")
-    return RedirectResponse(url="/login")
+    return RedirectResponse(url="/catalog")
 
 
 @app.get("/login", response_class=HTMLResponse)
-async def login_form(request: Request):
+async def login_form(request: Request, redirect: str | None = Query(None)):
     return templates.TemplateResponse(
         "login.html",
-        {"request": request, "error": None},
+        {"request": request, "error": None, "redirect": redirect},
     )
 
 
@@ -73,6 +70,7 @@ async def login(
     request: Request,
     email: str = Form(...),
     password: str = Form(...),
+    redirect: str | None = Form(None),
 ):
     async with httpx.AsyncClient() as client:
         try:
@@ -113,7 +111,8 @@ async def login(
             status_code=500,
         )
 
-    response = RedirectResponse(url="/properties", status_code=303)
+    redirect_url = redirect if redirect else "/properties"
+    response = RedirectResponse(url=redirect_url, status_code=303)
     response.set_cookie(
         key="access_token",
         value=token,
@@ -207,19 +206,11 @@ async def property_create(
     if not token:
         return RedirectResponse(url="/login")
 
-    owner_id = get_user_id_from_token(token)
-    if owner_id is None:
-        # что-то не так с токеном — отправим на логин
-        response = RedirectResponse(url="/login", status_code=303)
-        response.delete_cookie("access_token")
-        return response
-
     headers = {"Authorization": f"Bearer {token}"}
     json_data = {
-        "owner_id": owner_id,  # <-- автоматически из токена
         "name": name,
         "address": address,
-        "description": description,
+        "description": description if description else None,
         "property_type": property_type,
     }
 
@@ -467,7 +458,6 @@ async def lease_create(
     request: Request,
     unit_id: int = Form(...),
     property_id: int = Form(...),
-    tenant_id: int = Form(...),
     start_date: str = Form(...),
     end_date: str | None = Form(None),
     monthly_rent: float = Form(...),
@@ -480,7 +470,6 @@ async def lease_create(
     headers = {"Authorization": f"Bearer {token}"}
     json_data = {
         "unit_id": unit_id,
-        "tenant_id": tenant_id,
         "start_date": start_date,
         "end_date": end_date,
         "monthly_rent": monthly_rent,
@@ -521,8 +510,391 @@ async def lease_create(
             status_code=resp.status_code,
         )
 
-    # после успешного создания → назад к помещениям этого объекта
     return RedirectResponse(
-        url=f"/properties/{property_id}/units",
+        url=f"/catalog/{property_id}",
         status_code=303,
     )
+
+
+# Публичный каталог объектов
+@app.get("/catalog", response_class=HTMLResponse)
+async def catalog_list(
+    request: Request,
+    name: str | None = Query(None),
+    address: str | None = Query(None),
+):
+    """Публичный каталог всех объектов с фильтрацией"""
+    params = {}
+    if name:
+        params["name"] = name
+    if address:
+        params["address"] = address
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            resp = await client.get(
+                f"{PROPERTY_BASE}/api/v1/properties/public",
+                params=params,
+                timeout=10.0,
+            )
+        except httpx.RequestError:
+            return templates.TemplateResponse(
+                "catalog.html",
+                {
+                    "request": request,
+                    "properties": [],
+                    "error": "Сервис объектов недоступен",
+                    "name": name or "",
+                    "address": address or "",
+                },
+                status_code=503,
+            )
+    
+    if resp.status_code not in (200, 201):
+        return templates.TemplateResponse(
+            "catalog.html",
+            {
+                "request": request,
+                "properties": [],
+                "error": f"Ошибка сервиса объектов: {resp.status_code}",
+                "name": name or "",
+                "address": address or "",
+            },
+            status_code=resp.status_code,
+        )
+    
+    properties = resp.json()
+    return templates.TemplateResponse(
+        "catalog.html",
+        {
+            "request": request,
+            "properties": properties,
+            "error": None,
+            "name": name or "",
+            "address": address or "",
+        },
+    )
+
+
+@app.get("/catalog/{property_id}", response_class=HTMLResponse)
+async def catalog_property_detail(
+    request: Request,
+    property_id: int,
+):
+    """Публичная страница объекта с помещениями"""
+    async with httpx.AsyncClient() as client:
+        # Получаем информацию об объекте
+        try:
+            resp_property = await client.get(
+                f"{PROPERTY_BASE}/api/v1/properties/{property_id}",
+                timeout=10.0,
+            )
+        except httpx.RequestError:
+            return templates.TemplateResponse(
+                "catalog_detail.html",
+                {
+                    "request": request,
+                    "property": None,
+                    "units": [],
+                    "error": "Сервис объектов недоступен",
+                },
+                status_code=503,
+            )
+        
+        if resp_property.status_code != 200:
+            return templates.TemplateResponse(
+                "catalog_detail.html",
+                {
+                    "request": request,
+                    "property": None,
+                    "units": [],
+                    "error": f"Объект не найден: {resp_property.status_code}",
+                },
+                status_code=resp_property.status_code,
+            )
+        
+        property_data = resp_property.json()
+        
+        # Получаем помещения объекта
+        try:
+            resp_units = await client.get(
+                f"{PROPERTY_BASE}/api/v1/units/public",
+                params={"property_id": property_id},
+                timeout=10.0,
+            )
+        except httpx.RequestError:
+            return templates.TemplateResponse(
+                "catalog_detail.html",
+                {
+                    "request": request,
+                    "property": property_data,
+                    "units": [],
+                    "error": "Сервис помещений недоступен",
+                },
+                status_code=503,
+            )
+        
+        units = resp_units.json() if resp_units.status_code == 200 else []
+        
+        return templates.TemplateResponse(
+            "catalog_detail.html",
+            {
+                "request": request,
+                "property": property_data,
+                "units": units,
+                "error": None,
+            },
+        )
+
+
+@app.get("/catalog/{property_id}/unit/{unit_id}/lease", response_class=HTMLResponse)
+async def catalog_unit_lease_form(
+    request: Request,
+    property_id: int,
+    unit_id: int,
+):
+    """Форма создания договора для публичного каталога"""
+    token = get_token_from_cookies(request)
+    if not token:
+        return RedirectResponse(url=f"/login?redirect=/catalog/{property_id}/unit/{unit_id}/lease")
+    
+    # Получаем информацию о помещении
+    async with httpx.AsyncClient() as client:
+        try:
+            resp_unit = await client.get(
+                f"{PROPERTY_BASE}/api/v1/units/public/{unit_id}",
+                timeout=10.0,
+            )
+        except httpx.RequestError:
+            return templates.TemplateResponse(
+                "catalog_lease_form.html",
+                {
+                    "request": request,
+                    "unit": None,
+                    "property_id": property_id,
+                    "error": "Сервис помещений недоступен",
+                },
+                status_code=503,
+            )
+        
+        if resp_unit.status_code != 200:
+            return templates.TemplateResponse(
+                "catalog_lease_form.html",
+                {
+                    "request": request,
+                    "unit": None,
+                    "property_id": property_id,
+                    "error": "Помещение не найдено",
+                },
+                status_code=resp_unit.status_code,
+            )
+        
+        unit = resp_unit.json()
+        
+        return templates.TemplateResponse(
+            "catalog_lease_form.html",
+            {
+                "request": request,
+                "unit": unit,
+                "property_id": property_id,
+                "error": None,
+            },
+        )
+
+
+@app.post("/catalog/{property_id}/unit/{unit_id}/lease", response_class=HTMLResponse)
+async def catalog_unit_lease_create(
+    request: Request,
+    property_id: int,
+    unit_id: int,
+    start_date: str = Form(...),
+    end_date: str | None = Form(None),
+    status: str = Form("ACTIVE"),
+):
+    """Создание договора из публичного каталога"""
+    token = get_token_from_cookies(request)
+    if not token:
+        return RedirectResponse(url="/login")
+    
+    # Получаем информацию о помещении для цены
+    async with httpx.AsyncClient() as client:
+        try:
+            resp_unit = await client.get(
+                f"{PROPERTY_BASE}/api/v1/units/public/{unit_id}",
+                timeout=10.0,
+            )
+        except httpx.RequestError:
+            return templates.TemplateResponse(
+                "catalog_lease_form.html",
+                {
+                    "request": request,
+                    "unit": None,
+                    "property_id": property_id,
+                    "error": "Сервис помещений недоступен",
+                },
+                status_code=503,
+            )
+        
+        if resp_unit.status_code != 200:
+            return templates.TemplateResponse(
+                "catalog_lease_form.html",
+                {
+                    "request": request,
+                    "unit": None,
+                    "property_id": property_id,
+                    "error": "Помещение не найдено",
+                },
+                status_code=resp_unit.status_code,
+            )
+        
+        unit = resp_unit.json()
+        monthly_rent = float(unit["monthly_rent"])
+        
+        headers = {"Authorization": f"Bearer {token}"}
+        json_data = {
+            "unit_id": unit_id,
+            "start_date": start_date,
+            "end_date": end_date,
+            "monthly_rent": monthly_rent,  # Берем цену из помещения
+            "status": status,
+        }
+        
+        try:
+            resp = await client.post(
+                f"{LEASING_BASE}/api/v1/leases/",
+                headers=headers,
+                json=json_data,
+                timeout=10.0,
+            )
+        except httpx.RequestError:
+            return templates.TemplateResponse(
+                "catalog_lease_form.html",
+                {
+                    "request": request,
+                    "unit": unit,
+                    "property_id": property_id,
+                    "error": "Сервис договоров недоступен",
+                },
+                status_code=503,
+            )
+        
+        if resp.status_code not in (200, 201):
+            return templates.TemplateResponse(
+                "catalog_lease_form.html",
+                {
+                    "request": request,
+                    "unit": unit,
+                    "property_id": property_id,
+                    "error": f"Ошибка создания договора: {resp.status_code} {resp.text}",
+                },
+                status_code=resp.status_code,
+            )
+        
+        return RedirectResponse(
+            url=f"/catalog/{property_id}",
+            status_code=303,
+        )
+
+
+@app.get("/register")
+async def register_form(request: Request):
+    return templates.TemplateResponse(
+        "register.html",
+        {
+            "request": request,
+            "error": None,
+            "success": None,
+            "email": "",
+            "username": "",
+            "password": "",
+            "confirm_password": "",
+        },
+    )
+
+
+@app.post("/register")
+async def register_submit(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+):
+    # локальная проверка совпадения паролей
+    if password != confirm_password:
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "error": "Пароль и подтверждение пароля не совпадают.",
+                "success": None,
+                "email": email,
+                "username": username,
+                "password": password,
+                "confirm_password": confirm_password,
+            },
+            status_code=400,
+        )
+
+    try:
+        async with httpx.AsyncClient(base_url=AUTH_BASE, timeout=5.0) as client:
+            payload = {
+                "email": email,
+                "username": username,
+                "password": password,
+            }
+            resp = await client.post("/api/v1/auth/register", json=payload)
+
+        if resp.status_code in (200, 201):
+            return templates.TemplateResponse(
+                "register.html",
+                {
+                    "request": request,
+                    "error": None,
+                    "success": "Аккаунт успешно создан. Теперь вы можете войти.",
+                    "email": email,
+                    "username": username,
+                    "password": password,
+                    "confirm_password": confirm_password,
+                },
+            )
+
+        # ошибка от auth-сервиса
+        try:
+            data = resp.json()
+        except Exception:
+            data = {}
+
+        backend_error = data.get("detail") or data.get("message") or "Ошибка регистрации."
+
+        if resp.status_code in (400, 409) and "email" in str(backend_error).lower():
+            backend_error = "Аккаунт с таким email уже зарегистрирован."
+
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "error": backend_error,
+                "success": None,
+                "email": email,
+                "username": username,
+                "password": password,
+                "confirm_password": confirm_password,
+            },
+            status_code=resp.status_code,
+        )
+
+    except httpx.RequestError:
+        return templates.TemplateResponse(
+            "register.html",
+            {
+                "request": request,
+                "error": "Сервис аутентификации временно недоступен. Попробуйте позже.",
+                "success": None,
+                "email": email,
+                "username": username,
+                "password": password,
+                "confirm_password": confirm_password,
+            },
+            status_code=503,
+        )

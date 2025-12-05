@@ -10,7 +10,7 @@ class PropertyBase(BaseModel):
 
 
 class PropertyCreate(PropertyBase):
-    owner_id: int
+    pass  # user_id берется из токена автоматически
 
 
 class PropertyRead(PropertyBase):

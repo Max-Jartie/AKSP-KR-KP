@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Каталог объектов{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Каталог объектов недвижимости</h2>
+    <div>
+        {% if request.cookies.get("access_token") %}
+            <a href="/properties" class="btn btn-outline-primary me-2">Мои объекты</a>
+            <a href="/logout" class="btn btn-outline-secondary">Выйти</a>
+        {% else %}
+            <a href="/login" class="btn btn-primary me-2">Войти</a>
+            <a href="/register" class="btn btn-outline-primary">Регистрация</a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Форма фильтрации -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" action="/catalog" class="row g-3">
+            <div class="col-md-5">
+                <label for="name" class="form-label">Название</label>
+                <input type="text" class="form-control" id="name" name="name" value="{{ name }}" placeholder="Поиск по названию...">
+            </div>
+            <div class="col-md-5">
+                <label for="address" class="form-label">Адрес</label>
+                <input type="text" class="form-control" id="address" name="address" value="{{ address }}" placeholder="Поиск по адресу...">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Найти</button>
+            </div>
+        </form>
+        {% if name or address %}
+            <div class="mt-2">
+                <a href="/catalog" class="btn btn-sm btn-outline-secondary">Сбросить фильтры</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if properties and properties|length > 0 %}
+    <div class="row">
+        {% for p in properties %}
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ p.name }}</h5>
+                        <p class="card-text">
+                            <strong>Адрес:</strong> {{ p.address }}<br>
+                            <strong>Тип:</strong> {{ p.property_type }}
+                            {% if p.description %}
+                                <br><strong>Описание:</strong> {{ p.description }}
+                            {% endif %}
+                        </p>
+                        <a href="/catalog/{{ p.id }}" class="btn btn-primary">Посмотреть помещения</a>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        {% if name or address %}
+            Объекты не найдены по заданным критериям поиска.
+        {% else %}
+            Объекты отсутствуют.
+        {% endif %}
+    </div>
+{% endif %}
+{% endblock %}
+

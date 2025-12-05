@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Заключение договора{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="/catalog/{{ property_id }}" class="btn btn-outline-secondary">← Назад</a>
+</div>
+
+<h2 class="mb-3">Заключение договора аренды</h2>
+
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if unit %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5>Информация о помещении</h5>
+            <p class="mb-1"><strong>Помещение №{{ unit.unit_number }}</strong></p>
+            {% if unit.area %}
+                <p class="mb-1"><strong>Площадь:</strong> {{ unit.area }} м²</p>
+            {% endif %}
+            {% if unit.floor %}
+                <p class="mb-1"><strong>Этаж:</strong> {{ unit.floor }}</p>
+            {% endif %}
+            <p class="mb-0"><strong>Арендная плата:</strong> <span class="text-success fw-bold">{{ "%.2f"|format(unit.monthly_rent) }} ₽/мес</span></p>
+        </div>
+    </div>
+
+    <form method="post" action="/catalog/{{ property_id }}/unit/{{ unit.id }}/lease">
+        <input type="hidden" name="property_id" value="{{ property_id }}"/>
+
+        <div class="mb-3">
+            <label class="form-label">Дата начала аренды <span class="text-danger">*</span></label>
+            <input type="date" class="form-control" name="start_date" required />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Дата окончания аренды</label>
+            <input type="date" class="form-control" name="end_date" />
+            <small class="form-text text-muted">Оставьте пустым для бессрочного договора</small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Статус</label>
+            <select class="form-select" name="status">
+                <option value="ACTIVE">Активен</option>
+                <option value="PLANNED">Планируется</option>
+            </select>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>Арендная плата:</strong> {{ "%.2f"|format(unit.monthly_rent) }} ₽/мес (фиксированная, не подлежит изменению)
+        </div>
+
+        <button type="submit" class="btn btn-success">Заключить договор</button>
+        <a href="/catalog/{{ property_id }}" class="btn btn-secondary">Отмена</a>
+    </form>
+{% else %}
+    <div class="alert alert-danger">Информация о помещении недоступна.</div>
+{% endif %}
+{% endblock %}
+

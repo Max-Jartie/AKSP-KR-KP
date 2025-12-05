@@ -12,6 +12,9 @@
         {% endif %}
 
         <form method="post" action="/login">
+            {% if redirect %}
+                <input type="hidden" name="redirect" value="{{ redirect }}" />
+            {% endif %}
             <div class="mb-3">
                 <label for="email" class="form-label">E-mail</label>
                 <input
@@ -32,6 +35,12 @@
                   required
                 />
             </div>
+            <p style="text-align: center; margin-top: 10px;">
+                Нет аккаунта?
+                <a href="/register">Зарегистрироваться</a>
+            </p>
+            
+            
             <button type="submit" class="btn btn-primary w-100">
                 Войти
             </button>

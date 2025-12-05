@@ -12,12 +12,27 @@
 <body class="bg-light">
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
     <div class="container">
-        <a class="navbar-brand" href="/properties">Rental System</a>
+        <a class="navbar-brand" href="/catalog">Rental System</a>
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav ms-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="/logout">Выйти</a>
+                    <a class="nav-link" href="/catalog">Каталог</a>
                 </li>
+                {% if request.cookies.get("access_token") %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/properties">Мои объекты</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/logout">Выйти</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="/login">Войти</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/register">Регистрация</a>
+                    </li>
+                {% endif %}
             </ul>
         </div>
     </div>

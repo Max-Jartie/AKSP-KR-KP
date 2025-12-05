@@ -1,15 +1,15 @@
 from sqlalchemy import Column, Integer, String, Text, Numeric, DateTime, ForeignKey
 from sqlalchemy.sql import func
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import relationship
 
-Base = declarative_base()
+from app.db.base import Base
 
 class Property(Base):
     __tablename__ = "property"
     __table_args__ = {"schema": "property_mgmt"}
 
     id = Column(Integer, primary_key=True, index=True)
-    owner_id = Column(Integer, nullable=False)  # FK на auth.app_user.id
+    user_id = Column(Integer, nullable=False)  # FK на auth.app_user.id
     name = Column(String(255), nullable=False)
     address = Column(Text, nullable=False)
     description = Column(Text)

@@ -1,1 +1,3 @@
-from app.models.leasing import Lease, Payment  # noqa: F401
+from sqlalchemy.orm import declarative_base
+
+Base = declarative_base()

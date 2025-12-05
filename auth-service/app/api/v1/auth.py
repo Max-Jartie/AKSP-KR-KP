@@ -4,32 +4,24 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User
 from app.schemas.user import UserCreate, UserRead, UserLogin, Token
+from app.crud.user import get_by_email, create_user
 from app.core.security import (
     get_password_hash,
     verify_password,
     create_access_token,
 )
 
-router = APIRouter()
-
+router = APIRouter(tags=["auth"])
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    existing = db.query(User).filter(User.email == user_in.email).first()
+    existing = get_by_email(db, user_in.email)
     if existing:
-        raise HTTPException(status_code=400, detail="Email already registered")
-
-    hashed_password = get_password_hash(user_in.password)
-
-    user = User(
-        email=user_in.email,
-        full_name=user_in.full_name,
-        password_hash=hashed_password,
-        role=user_in.role,
-    )
-    db.add(user)
-    db.commit()
-    db.refresh(user)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Пользователь с таким email уже существует",
+        )
+    user = create_user(db, user_in)
     return user
 
 

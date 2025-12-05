@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ property.name if property else 'Объект' }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="/catalog" class="btn btn-outline-secondary">← Назад к каталогу</a>
+</div>
+
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+{% if property %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h2>{{ property.name }}</h2>
+            <p class="mb-1"><strong>Адрес:</strong> {{ property.address }}</p>
+            <p class="mb-1"><strong>Тип:</strong> {{ property.property_type }}</p>
+            {% if property.description %}
+                <p class="mb-0"><strong>Описание:</strong> {{ property.description }}</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <h3 class="mb-3">Доступные помещения</h3>
+
+    {% if units and units|length > 0 %}
+        <div class="row">
+            {% for unit in units %}
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Помещение №{{ unit.unit_number }}</h5>
+                            <p class="card-text">
+                                {% if unit.area %}
+                                    <strong>Площадь:</strong> {{ unit.area }} м²<br>
+                                {% endif %}
+                                {% if unit.floor %}
+                                    <strong>Этаж:</strong> {{ unit.floor }}<br>
+                                {% endif %}
+                                <strong>Статус:</strong> 
+                                <span class="badge bg-success">{{ unit.status }}</span><br>
+                                <strong>Арендная плата:</strong> {{ "%.2f"|format(unit.monthly_rent) }} ₽/мес
+                            </p>
+                            {% if request.cookies.get("access_token") %}
+                                <a href="/catalog/{{ property.id }}/unit/{{ unit.id }}/lease" class="btn btn-primary">
+                                    Заключить договор
+                                </a>
+                            {% else %}
+                                <a href="/login?redirect=/catalog/{{ property.id }}/unit/{{ unit.id }}/lease" class="btn btn-primary">
+                                    Войти для заключения договора
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            В данном объекте нет доступных помещений.
+        </div>
+    {% endif %}
+{% else %}
+    <div class="alert alert-danger">Объект не найден.</div>
+{% endif %}
+{% endblock %}
+
