@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer, String, Date, DateTime, Numeric
 from sqlalchemy.sql import func
-
 from app.db.base import Base
 
 
@@ -11,7 +10,7 @@ class Lease(Base):
     id = Column(Integer, primary_key=True, index=True)
 
     unit_id = Column(Integer, nullable=False)
-    user_id = Column(Integer, nullable=False)  # FK на auth.app_user.id
+    user_id = Column(Integer, nullable=False)
 
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=True)
