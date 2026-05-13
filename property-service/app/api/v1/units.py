@@ -17,7 +17,6 @@ def list_units_public(
     db: Session = Depends(get_db),
 ):
     """Публичный список помещений объекта"""
-    # Проверяем, что объект существует
     property_obj = db.query(Property).filter(Property.id == property_id).first()
     if not property_obj:
         raise HTTPException(
@@ -25,7 +24,6 @@ def list_units_public(
             detail="Property not found"
         )
     
-    # Возвращаем только доступные помещения
     units = db.query(Unit).filter(
         Unit.property_id == property_id,
         Unit.status == "AVAILABLE"
@@ -40,11 +38,9 @@ def list_units(
     current_user: CurrentUser = Depends(get_current_user),
 ):
     """Получить список помещений текущего пользователя"""
-    # Фильтруем только помещения, принадлежащие объектам текущего пользователя
     query = db.query(Unit).join(Property).filter(Property.user_id == current_user.id)
     
     if property_id is not None:
-        # Дополнительно проверяем, что property принадлежит пользователю
         property_obj = db.query(Property).filter(
             Property.id == property_id,
             Property.user_id == current_user.id
@@ -65,7 +61,6 @@ def create_unit(
     db: Session = Depends(get_db),
     current_user: CurrentUser = Depends(get_current_user),
 ):
-    # Проверяем, что property принадлежит текущему пользователю
     property_obj = db.query(Property).filter(
         Property.id == unit_in.property_id,
         Property.user_id == current_user.id
